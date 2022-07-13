@@ -3,11 +3,15 @@ target/
 !**/src/main/**/target/
 !**/src/test/**/target/
 
+# semantic
+node_modules
+
 ### IntelliJ IDEA ###
 .idea/modules.xml
 .idea/jarRepositories.xml
 .idea/compiler.xml
 .idea/libraries/
+.idea
 *.iws
 *.iml
 *.ipr

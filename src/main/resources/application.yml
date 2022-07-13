@@ -1,0 +1,13 @@
+---
+
+spring:
+  main:
+    allow-bean-definition-overriding: true
+  profiles:
+    active: elixir
+
+logging:
+  file:
+    path: /var/lib/tomcat9/logs/broker.log
+  level:
+    root: debug

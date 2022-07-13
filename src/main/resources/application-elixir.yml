@@ -1,0 +1,92 @@
+---
+
+spring:
+  config:
+    activate:
+      on-profile: elixir
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher
+
+broker:
+  bona-fide-status-attr: bona_fide_status
+  bona-fide-status-rems-attr: bona_fide_status_rems
+  group-affiliations-attr: groupAffiliations
+  terms-and-policies-group-id: 1
+  affiliations-attr: affiliations
+  org-url-attr: orgUrl
+  attributes-to-search:
+    - "elixir-persistent-shadow"
+  issuer: issuer
+  jku: jku-url
+  path-to-jwk-file: path
+adapter:
+  adapter-primary: ldap
+  call-fallback: false
+ldap:
+  host: host
+  user: user
+  password: password
+  base-dn: dn
+  use-tls: false
+  use-ssl: true
+  allow-untrusted-ssl: false
+  timeout-secs: 10
+  port: 636
+rpc:
+  enabled: true
+  url: url
+  username: username
+  password: password
+  serializer: json
+attributes:
+  attributeMappings:
+    bona_fide_status:
+      internal-name: bona_fide_status
+      rpc-name: name
+      ldap-name: name
+    bona_fide_status_rems:
+      internal-name: bona_fide_status_rems
+      rpc-name: name
+      ldap-name: name
+    groupAffiliations:
+      internal-name: groupAffiliations
+      rpc-name: name
+      ldap-name: name
+    affiliations:
+      internal-name: affiliations
+      rpc-name: name
+      ldap-name: name
+    orgUrl:
+      internal-name: orgUrl
+      rpc-name: name
+      ldap-name: name
+    elixir-persistent-shadow:
+      internal-name: elixir-persistent-shadow
+      rpc-name: name
+      ldap-name: name
+    preferred-mail:
+      internal-name: preferred-mail
+      rpc-name: name
+      ldap-name: name
+ga4gh:
+  repos:
+    -
+      name: repo1
+      url: url1
+      jwks: jwks1
+      headers:
+        -
+          header: header
+          value: value
+    -
+      name: repo2
+      url: url2
+      jwks: jwks2
+      headers:
+        -
+          header: header
+          value: value
+basic-auth:
+  username: username
+  password: password
