@@ -26,7 +26,7 @@
 
         <version.springfox>3.0.0</version.springfox>
         <version.swagger>3.0.0</version.swagger>
-        <version.apache-directory-api>2.1.0</version.apache-directory-api>
+        <version.apache-directory-api>2.1.1</version.apache-directory-api>
         <version.nimbus-jose-jwt>9.23</version.nimbus-jose-jwt>
         <version.guava>31.1-jre</version.guava>
         <version.bouncy-castle>1.70</version.bouncy-castle>
