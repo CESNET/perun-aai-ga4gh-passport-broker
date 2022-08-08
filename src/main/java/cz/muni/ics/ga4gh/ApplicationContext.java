@@ -1,27 +1,20 @@
 package cz.muni.ics.ga4gh;
 
-import cz.muni.ics.ga4gh.config.BrokerConfig;
+import cz.muni.ics.ga4gh.base.properties.Ga4ghBrokersProperties;
+import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.core.io.FileUrlResource;
 import org.springframework.core.io.Resource;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Component;
 import springfox.documentation.builders.PathSelectors;
 import springfox.documentation.builders.RequestHandlerSelectors;
 import springfox.documentation.spi.DocumentationType;
 import springfox.documentation.spring.web.plugins.Docket;
 
-import java.net.MalformedURLException;
-
-@Configuration
+@Component
+@ConfigurationPropertiesScan
 public class ApplicationContext {
-
-    private final String pathToJwkFile;
-
-    public ApplicationContext(BrokerConfig config) {
-        this.pathToJwkFile = config.getPathToJwkFile();
-    }
 
     @Bean
     public Docket api() {
@@ -38,7 +31,7 @@ public class ApplicationContext {
     }
 
     @Bean
-    public Resource jwks() throws MalformedURLException {
-        return new FileUrlResource(pathToJwkFile);
+    public Resource jwkFileResource(Ga4ghBrokersProperties ga4ghBrokersProperties) {
+        return ga4ghBrokersProperties.getJwkKeystoreFile();
     }
 }

@@ -3,11 +3,137 @@
 spring:
   main:
     allow-bean-definition-overriding: true
-  profiles:
-    active: elixir
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher
 
 logging:
   file:
-    path: /var/lib/tomcat9/logs/broker.log
+    path: /var/lib/tomcat9/logs/ga4gh-passport-broker
+    name: broker.log
   level:
-    root: debug
+    root: error
+    org.springframework: warn
+    cz.muni.ics.ga4gh: debug
+
+
+broker:
+  user-identification-attributes:
+    - "elixir-persistent-shadow"
+  issuer: issuer
+  jku: jku-url
+  path-to-jwk-file: path
+  brokers:
+    - name: elixir
+      broker-class: ElixirGa4ghBroker
+      bona-fide-status-attr: bona_fide_status
+      bona-fide-status-rems-attr: bona_fide_status_rems
+      group-affiliations-attr: groupAffiliations
+      terms-and-policies-group-id: 1
+      affiliations-attr: affiliations
+      org-url-attr: orgUrl
+      identifier-attribute: elixir-persistent-shadow
+      membership-vo-id: 1
+      passport-repositories:
+        - name: repo1
+          url: url1
+          jwks: jwks1
+          headers:
+            - header: header
+              value: value
+        - name: repo2
+          url: url2
+          jwks: jwks2
+          headers:
+            - header: header
+              value: value
+    - name: bbmri
+      broker-class: BbmriGa4ghBroker
+      bona-fide-status-attr: bona_fide_status
+      bona-fide-status-rems-attr: bona_fide_status_rems
+      group-affiliations-attr: groupAffiliations
+      terms-and-policies-group-id: 2
+      affiliations-attr: affiliations
+      org-url-attr: orgUrl
+      identifier-attribute: bbmri-persistent-shadow
+      membership-vo-id: 2
+      passport-repositories:
+        - name: repo1
+          url: url1
+          jwks: jwks1
+          headers:
+            - header: header
+              value: value
+        - name: repo2
+          url: url2
+          jwks: jwks2
+          headers:
+            - header: header
+              value: value
+    - name: perun
+      broker-class: PerunGa4ghBroker
+      identifier-attribute: lifescience-id
+      source: https://perun-aai.org/
+      affiliations-attr: affiliations
+      org-url-attr: org_url
+      whitelisted-linked-identity-sources:
+        - "https://login.elixir-czech.org/idp/"
+        - "https://proxy.aai.lifescience-ri.eu/proxy"
+
+perun:
+  adapter:
+    primary: ldap
+    call-fallback: false
+  connector:
+    ldap:
+      host: host
+      user: user
+      password: password
+      base-dn: dn
+      use-tls: false
+      use-ssl: true
+      allow-untrusted-ssl: false
+      timeout-secs: 10
+      port: 636
+    rpc:
+      enabled: true
+      url: url
+      username: username
+      password: password
+      serializer: json
+
+attributes:
+  attribute_mappings:
+    bona_fide_status:
+      internal-name: bona_fide_status
+      rpc-name: name
+      ldap-name: name
+    bona_fide_status_rems:
+      internal-name: bona_fide_status_rems
+      rpc-name: name
+      ldap-name: name
+    groupAffiliations:
+      internal-name: groupAffiliations
+      rpc-name: name
+      ldap-name: name
+    affiliations:
+      internal-name: affiliations
+      rpc-name: name
+      ldap-name: name
+    orgUrl:
+      internal-name: orgUrl
+      rpc-name: name
+      ldap-name: name
+    elixir-persistent-shadow:
+      internal-name: elixir-persistent-shadow
+      rpc-name: name
+      ldap-name: name
+    preferred-mail:
+      internal-name: preferred-mail
+      rpc-name: name
+      ldap-name: name
+
+basic-auth:
+  credentials:
+    - username: username
+      password: password
