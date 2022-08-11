@@ -26,41 +26,43 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.StringUtils;
 
 @Slf4j
-public class BbmriGa4ghBroker extends Ga4ghBroker {
+public class LifescienceRiGa4ghBroker extends Ga4ghBroker {
 
     private static final String BONA_FIDE_URL = "https://doi.org/10.1038/s41431-018-0219-y";
-    private static final String BBMRI_ERIC_ORG_URL = "https://www.bbmri-eric.eu/";
+    private static final String LS_RI_ORG_URL = "https://lifescience-ri.eu/";
     private static final String FACULTY_AT = "faculty@";
 
-    private final String getBbmriIdAttribute;
+    private final String elixirIdAttribute;
     private final String bonaFideStatusAttr;
+    private final String bonaFideStatusREMSAttr;
     private final String groupAffiliationsAttr;
     private final Long termsAndPoliciesGroupId;
 
-    private final Long bbmriVoId;
+    private final Long lifescienceRiVoId;
 
-    public BbmriGa4ghBroker(BrokerInstanceProperties instanceProperties,
-                            Ga4ghBrokersProperties brokersProperties,
-                            PerunAdapter adapter,
-                            JWTSigningAndValidationService jwtService)
+    public LifescienceRiGa4ghBroker(BrokerInstanceProperties instanceProperties,
+                                    Ga4ghBrokersProperties brokersProperties,
+                                    PerunAdapter adapter,
+                                    JWTSigningAndValidationService jwtService)
     {
         super(instanceProperties, brokersProperties, adapter, jwtService);
 
-        this.getBbmriIdAttribute = instanceProperties.getIdentifierAttribute();
+        this.elixirIdAttribute = instanceProperties.getIdentifierAttribute();
         this.bonaFideStatusAttr = instanceProperties.getBonaFideStatusAttr();
+        this.bonaFideStatusREMSAttr = instanceProperties.getBonaFideStatusRemsAttr();
         this.groupAffiliationsAttr = instanceProperties.getGroupAffiliationsAttr();
         this.termsAndPoliciesGroupId = instanceProperties.getTermsAndPoliciesGroupId();
-        this.bbmriVoId = instanceProperties.getMembershipVoId();
+        this.lifescienceRiVoId = instanceProperties.getMembershipVoId();
     }
 
     @Override
     protected String getSubAttribute() {
-        return getBbmriIdAttribute;
+        return elixirIdAttribute;
     }
 
     @Override
     protected Long getCommunityVoId() {
-        return bbmriVoId;
+        return lifescienceRiVoId;
     }
 
     @Override
@@ -69,18 +71,38 @@ public class BbmriGa4ghBroker extends Ga4ghBroker {
         String type = TYPE_AFFILIATION_AND_ROLE;
         logAddingVisas(type);
         if (!isCommunityMember(ctx.getPerunUserId())) {
-            log.debug("User is not member of the BBMRI community, not adding any {} visas", type);
+            log.debug("User is not member of the LS community, not adding any {} visas", type);
             return;
         }
-        Affiliation affiliate = new Affiliation(
-            null, "affiliate@bbmri.eu",System.currentTimeMillis() / 1000L);
-        String value = affiliate.getValue();
+
+        long asserted = System.currentTimeMillis() / 1000L;
+
+        Affiliation affiliate = new Affiliation(null, "affiliate@lifescience-ri.eu",asserted);
         Ga4ghPassportVisa affiliateVisa = createVisa(
             VisaAssemblyParameters.builder()
                 .type(type)
                 .sub(ctx.getSubject())
                 .userId(ctx.getPerunUserId())
-                .value(value)
+                .value(affiliate.getValue())
+                .source(affiliate.getSource())
+                .by(BY_SYSTEM)
+                .asserted(affiliate.getAsserted())
+                .expires(Utils.getOneYearExpires(affiliate.getAsserted()))
+                .conditions(null)
+                .build()
+        );
+        if (affiliateVisa != null) {
+            ctx.getResultVisas().add(affiliateVisa);
+            logAddedVisa(type, affiliate.getValue());
+        }
+
+        Affiliation member = new Affiliation(null, "member@lifescience-ri.eu",asserted);
+        Ga4ghPassportVisa memberVisa = createVisa(
+            VisaAssemblyParameters.builder()
+                .type(type)
+                .sub(ctx.getSubject())
+                .userId(ctx.getPerunUserId())
+                .value(member.getValue())
                 .source(affiliate.getSource())
                 .by(BY_SYSTEM)
                 .asserted(affiliate.getAsserted())
@@ -89,9 +111,9 @@ public class BbmriGa4ghBroker extends Ga4ghBroker {
                 .build()
         );
 
-        if (affiliateVisa != null) {
-            ctx.getResultVisas().add(affiliateVisa);
-            logAddedVisa(type, value);
+        if (memberVisa != null) {
+            ctx.getResultVisas().add(memberVisa);
+            logAddedVisa(type, member.getValue());
         }
     }
 
@@ -100,7 +122,7 @@ public class BbmriGa4ghBroker extends Ga4ghBroker {
         String type = TYPE_ACCEPTED_TERMS_AND_POLICIES;
         logAddingVisas(type);
         if (termsAndPoliciesGroupId == null) {
-            log.debug("Group ID for accepted terms and policies is not defined, not adding any {} visas", type);
+            log.debug("Group ID for accepted terms and policies not defined, not adding any {} visas", type);
             return;
         }
 
@@ -111,12 +133,13 @@ public class BbmriGa4ghBroker extends Ga4ghBroker {
         }
 
         long asserted = ctx.getNow();
-        String bonaFideStatusCreatedAt = adapter.getAdapterRpc()
-            .getUserAttributeCreatedAt(ctx.getPerunUserId(), bonaFideStatusAttr);
-        if (bonaFideStatusCreatedAt != null) {
-            asserted = Timestamp.valueOf(bonaFideStatusCreatedAt).getTime() / 1000L;
+        if (StringUtils.hasText(bonaFideStatusAttr)) {
+            String bonaFideStatusCreatedAt = adapter.getAdapterRpc()
+                .getUserAttributeCreatedAt(ctx.getPerunUserId(), bonaFideStatusAttr);
+            if (bonaFideStatusCreatedAt != null) {
+                asserted = Timestamp.valueOf(bonaFideStatusCreatedAt).getTime() / 1000L;
+            }
         }
-
         long expires = Utils.getExpires(asserted, 100L);
 
         String value = BONA_FIDE_URL;
@@ -126,7 +149,7 @@ public class BbmriGa4ghBroker extends Ga4ghBroker {
                 .sub(ctx.getSubject())
                 .userId(ctx.getPerunUserId())
                 .value(value)
-                .source(BBMRI_ERIC_ORG_URL)
+                .source(LS_RI_ORG_URL)
                 .by(BY_SELF)
                 .asserted(asserted)
                 .expires(expires)
@@ -149,7 +172,10 @@ public class BbmriGa4ghBroker extends Ga4ghBroker {
             log.debug("No external {} visas available, not adding any {} visas", type, type);
             return;
         }
-        ctx.getResultVisas().addAll(controlledAccessGrants);
+        for (Ga4ghPassportVisa acgVisa: controlledAccessGrants) {
+            ctx.getResultVisas().add(acgVisa);
+            logAddedVisa(type, acgVisa.getGa4ghVisaV1().getValue());
+        }
     }
 
     @Override
@@ -168,7 +194,7 @@ public class BbmriGa4ghBroker extends Ga4ghBroker {
                     .sub(ctx.getSubject())
                     .userId(ctx.getPerunUserId())
                     .value(identity)
-                    .source(BBMRI_ERIC_ORG_URL)
+                    .source(LS_RI_ORG_URL)
                     .by(BY_SYSTEM)
                     .asserted(ctx.getNow())
                     .expires(Utils.getOneYearExpires(ctx.getNow()))
@@ -186,53 +212,45 @@ public class BbmriGa4ghBroker extends Ga4ghBroker {
     protected void addResearcherStatuses(PassportAssemblyContext ctx)
     {
         logAddingVisas(TYPE_RESEARCHER_STATUS);
-        // NOT YET DEFINED
-        /* Below is the approach from LS AAI and ELIXIR AAI
-        addResearcherStatusFromBonaFideAttribute(ctx);
+        //addResearcherStatusFromRemsBonaFideAttribute(ctx); - rems not defined yet
         addResearcherStatusFromAffiliation(ctx);
-        addResearcherStatusGroupAffiliations(ctx);
-        */
+        addResearcherStatusFromGroupAffiliations(ctx);
     }
 
-    private void addResearcherStatusFromBonaFideAttribute(PassportAssemblyContext ctx)
+    private void addResearcherStatusFromRemsBonaFideAttribute(PassportAssemblyContext ctx)
     {
         String type = TYPE_RESEARCHER_STATUS;
-        log.debug("Adding {} visa (from bona fide status)", type);
-        if (!StringUtils.hasText(bonaFideStatusAttr)) {
-            log.debug("BonaFideStatus attribute is not defined, not adding any {} visas (from bona fide status)", type);
-            return;
-        }
-        String bbmriBonaFideStatusCreatedAt = adapter.getAdapterRpc()
-            .getUserAttributeCreatedAt(ctx.getPerunUserId(), bonaFideStatusAttr);
-
-        if (bbmriBonaFideStatusCreatedAt == null) {
-            log.debug("BBMRI broker - rems bona fide status attr not defined, skipping visa");
+        log.debug("Adding {} visa (from REMS bona fide status)", type);
+        if (!StringUtils.hasText(bonaFideStatusREMSAttr)) {
+            log.debug("REMS bonaFideStatus attribute is not defined, not adding any {} visas (from REMS bona fide status)", type);
             return;
         }
 
-        long asserted = Timestamp.valueOf(bbmriBonaFideStatusCreatedAt).getTime() / 1000L;
+        String bonaFideStatusREMSCreatedAt = adapter.getAdapterRpc()
+            .getUserAttributeCreatedAt(ctx.getPerunUserId(), bonaFideStatusREMSAttr);
+        if (bonaFideStatusREMSCreatedAt == null) {
+            return;
+        }
+
+        long asserted = Timestamp.valueOf(bonaFideStatusREMSCreatedAt).getTime() / 1000L;
         long expires = Utils.getOneYearExpires(asserted);
-
         String value = BONA_FIDE_URL;
-        if (expires > ctx.getNow()) {
-            Ga4ghPassportVisa visa = createVisa(
-                VisaAssemblyParameters.builder()
-                    .type(type)
-                    .sub(ctx.getSubject())
-                    .userId(ctx.getPerunUserId())
-                    .value(value)
-                    .source(BBMRI_ERIC_ORG_URL)
-                    .by(BY_PEER)
-                    .asserted(asserted)
-                    .expires(expires)
-                    .conditions(null)
-                    .build()
-            );
-
-            if (visa != null) {
-                ctx.getResultVisas().add(visa);
-                logAddedVisa(type, value);
-            }
+        Ga4ghPassportVisa visa = createVisa(
+            VisaAssemblyParameters.builder()
+                .type(type)
+                .sub(ctx.getSubject())
+                .userId(ctx.getPerunUserId())
+                .value(value)
+                .source(LS_RI_ORG_URL)
+                .by(BY_PEER)
+                .asserted(asserted)
+                .expires(expires)
+                .conditions(null)
+                .build()
+        );
+        if (visa != null) {
+            ctx.getResultVisas().add(visa);
+            logAddedVisa(type, value);
         }
     }
 
@@ -263,7 +281,6 @@ public class BbmriGa4ghBroker extends Ga4ghBroker {
                     .conditions(null)
                     .build()
             );
-
             if (visa != null) {
                 ctx.getResultVisas().add(visa);
                 logAddedVisa(type, value);
@@ -271,14 +288,15 @@ public class BbmriGa4ghBroker extends Ga4ghBroker {
         }
     }
 
-    private void addResearcherStatusGroupAffiliations(PassportAssemblyContext ctx) {
+    private void addResearcherStatusFromGroupAffiliations(PassportAssemblyContext ctx) {
         String type = TYPE_RESEARCHER_STATUS;
         log.debug("Adding {} visa (from group affiliations)", type);
         if (!StringUtils.hasText(groupAffiliationsAttr)) {
             log.debug("GroupAffiliations attribute is not defined, not adding any {} visas (from group affiliations)", type);
             return;
         }
-        List<Affiliation> groupAffiliations = adapter.getGroupAffiliations(ctx.getPerunUserId(), bbmriVoId, groupAffiliationsAttr);
+        List<Affiliation> groupAffiliations = adapter.getGroupAffiliations(
+            ctx.getPerunUserId(), lifescienceRiVoId, groupAffiliationsAttr);
         if (groupAffiliations == null || groupAffiliations.isEmpty()) {
             return;
         }
@@ -295,14 +313,13 @@ public class BbmriGa4ghBroker extends Ga4ghBroker {
                     .sub(ctx.getSubject())
                     .userId(ctx.getPerunUserId())
                     .value(value)
-                    .source(BBMRI_ERIC_ORG_URL)
+                    .source(LS_RI_ORG_URL)
                     .by(BY_SO)
                     .asserted(affiliation.getAsserted())
                     .expires(Utils.getOneYearExpires(affiliation.getAsserted()))
                     .conditions(null)
                     .build()
             );
-
             if (visa != null) {
                 ctx.getResultVisas().add(visa);
                 logAddedVisa(type, value);
