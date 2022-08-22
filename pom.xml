@@ -13,7 +13,7 @@
 
     <groupId>cz.muni.ics</groupId>
     <artifactId>Perun-GA4GH</artifactId>
-    <version>1.0.1</version>
+    <version>1.0.2</version>
 
     <name>perun-ga4gh-broker</name>
     <description>GA4GH broker</description>
